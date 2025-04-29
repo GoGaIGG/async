@@ -1,5 +1,3 @@
-const { response } = require("express");
-
 const API = {
     organizationList: "/orgsList",
     analytics: "/api3/analytics",
@@ -8,19 +6,23 @@ const API = {
 };
 
 async function run() {
-    const orgOgrns = await sendRequest(API.organizationList);
-    const ogrns = orgOgrns.join(",");
+    try{
+        const orgOgrns = await sendRequest(API.organizationList);
+        const ogrns = orgOgrns.join(",");
 
-    const requisites = await sendRequest(`${API.orgReqs}?ogrn=${ogrns}`);
-    const orgsMap = reqsToMap(requisites);
+        const [requisites, analytics, buh] = await Promise.all([
+            sendRequest(`${API.orgReqs}?ogrn=${ogrns}`),
+            sendRequest(`${API.analytics}?ogrn=${ogrns}`),
+            sendRequest(`${API.buhForms}?ogrn=${ogrns}`)
+        ]);
 
-    const analytics = await sendRequest(`${API.analytics}?ogrn=${ogrns}`);
-    addInOrgsMap(orgsMap, analytics, "analytics");
-
-    const buh = await sendRequest(`${API.buhForms}?ogrn=${ogrns}`);
-    addInOrgsMap(orgsMap, buh, "buhForms");
-
-    render(orgsMap, orgOgrns);
+        const orgsMap = reqsToMap(requisites);
+        addInOrgsMap(orgsMap, analytics, "analytics");
+        addInOrgsMap(orgsMap, buh, "buhForms");
+        render(orgsMap, orgOgrns);
+    } catch(error){
+        alert(error.message);
+    }
 }
 
 run();
@@ -28,14 +30,16 @@ run();
 function sendRequest(url) {
     return fetch(url)
         .then(response => {
-            if (!response.ok)
-                throw new Error();
+            if (!response.ok){
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
             return response.json();
         })
         .catch(error => {
-            throw error;
+            throw new Error(error.message);
         });
 }
+
 
 function reqsToMap(requisites) {
     return requisites.reduce((acc, item) => {
