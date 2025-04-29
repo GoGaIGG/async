@@ -1,3 +1,5 @@
+const { response } = require("express");
+
 const API = {
     organizationList: "/orgsList",
     analytics: "/api3/analytics",
@@ -23,21 +25,16 @@ async function run() {
 
 run();
 
-function sendRequest(url, callback) {
-    return new Promise(() => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("GET", url, true);
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    callback(JSON.parse(xhr.response));
-                }
-            }
-        };
-
-        xhr.send();
-    })
+function sendRequest(url) {
+    return fetch(url)
+        .then(response => {
+            if (!response.ok)
+                throw new Error();
+            return response.json();
+        })
+        .catch(error => {
+            throw error;
+        });
 }
 
 function reqsToMap(requisites) {
